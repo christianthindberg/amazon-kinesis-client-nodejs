@@ -22,6 +22,10 @@ var util = require('util');
 var kcl = require('../../..');
 var logger = require('../../util/logger');
 
+// CT own additions
+var redis = require("redis");
+var os = require("os");
+
 /**
  * A simple implementation for the record processor (consumer) that simply writes the data to a log file.
  *
@@ -32,11 +36,21 @@ var logger = require('../../util/logger');
 function recordProcessor() {
   var log = logger().getLogger('recordProcessor');
   var shardId;
+  var redisClient;
 
   return {
 
     initialize: function(initializeInput, completeCallback) {
       shardId = initializeInput.shardId;
+
+      // CT connect to local Redis or AWS Redis
+      if (os.platform() === "darwin") { // running locally on Mac, connect to local Redis
+        redisClient = redis.createClient();
+        log.info ("redis test in producer: " + util.inspect(redisClient));
+      } else { // on AWS
+        redisClient = redis.createClient(6379, "web-app-redis.bbfmv1.0001.use1.cache.amazonaws.com");
+        log.info ("redis test in producer: " + util.inspect(redisClient));
+      }
 
       completeCallback();
     },
@@ -53,6 +67,8 @@ function recordProcessor() {
         data = new Buffer(record.data, 'base64').toString();
         sequenceNumber = record.sequenceNumber;
         partitionKey = record.partitionKey;
+        // TODO: read topic from the record and publish to redis-channel accordingly
+        redisClient.publish ("InfrastructureStationsChannel", data);
         log.info(util.format('ShardID: %s, Record: %s, SeqenceNumber: %s, PartitionKey:%s', shardId, data, sequenceNumber, partitionKey));
       }
       if (!sequenceNumber) {
@@ -67,6 +83,7 @@ function recordProcessor() {
     },
 
     shutdown: function(shutdownInput, completeCallback) {
+      redisClient.end();
       // Checkpoint should only be performed when shutdown reason is TERMINATE.
       if (shutdownInput.reason !== 'TERMINATE') {
         completeCallback();

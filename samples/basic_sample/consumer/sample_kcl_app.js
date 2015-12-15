@@ -47,10 +47,10 @@ function recordProcessor() {
       // CT connect to local Redis or AWS Redis
       if (os.platform() === "darwin") { // running locally on Mac, connect to local Redis
         redisClient = redis.createClient();
-        log.info ("redis test in producer: " + util.inspect(redisClient));
+        //log.info ("redis test in producer: " + util.inspect(redisClient));
       } else { // on AWS
         redisClient = redis.createClient(6379, "web-app-redis.bbfmv1.0001.use1.cache.amazonaws.com");
-        log.info ("redis test in producer: " + util.inspect(redisClient));
+        //log.info ("redis test in producer: " + util.inspect(redisClient));
       }
 
       completeCallback();
@@ -70,12 +70,12 @@ function recordProcessor() {
         sequenceNumber = record.sequenceNumber;
         partitionKey = record.partitionKey;
         // TODO: read topic from the record and publish to redis-channel accordingly
-        log.info("object: " + JSON.stringify(obj));
-        log.info("data.topic:" + obj["topic"]);
-        log.info("frequency: " + obj["frequency"]);
-        log.info("values: " + obj["values"]);
+        //log.info("object: " + JSON.stringify(obj));
+        //log.info("data.topic:" + obj["topic"]);
+        //log.info("frequency: " + obj["frequency"]);
+        //log.info("values: " + obj["values"]);
         redisClient.publish (obj["topic"], data);
-        log.info(util.format('ShardID: %s, Record: %s, SeqenceNumber: %s, PartitionKey:%s', shardId, data, sequenceNumber, partitionKey));
+        //log.info(util.format('ShardID: %s, Record: %s, SeqenceNumber: %s, PartitionKey:%s', shardId, data, sequenceNumber, partitionKey));
       }
       if (!sequenceNumber) {
         completeCallback();
@@ -83,7 +83,7 @@ function recordProcessor() {
       }
       // If checkpointing, completeCallback should only be called once checkpoint is complete.
       processRecordsInput.checkpointer.checkpoint(sequenceNumber, function(err, sequenceNumber) {
-        log.info(util.format('Checkpoint successful. ShardID: %s, SeqenceNumber: %s', shardId, sequenceNumber));
+        //log.info(util.format('Checkpoint successful. ShardID: %s, SeqenceNumber: %s', shardId, sequenceNumber));
         completeCallback();
       });
     },

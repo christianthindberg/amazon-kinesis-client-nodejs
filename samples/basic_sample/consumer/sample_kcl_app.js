@@ -62,19 +62,31 @@ function recordProcessor() {
         return;
       }
       var records = processRecordsInput.records;
-      var record, data, sequenceNumber, partitionKey;
+      var record, data, sequenceNumber, partitionKey, obj;
       for (var i = 0 ; i < records.length ; ++i) {
         record = records[i];
-        data = new Buffer(record.data, 'base64'); //.toString();
-        var obj = JSON.parse(data);
         sequenceNumber = record.sequenceNumber;
         partitionKey = record.partitionKey;
-        // TODO: read topic from the record and publish to redis-channel accordingly
+        data = new Buffer(record.data, 'base64'); //.toString();
+        //log.info("data: " + data);
+        try {
+          obj = JSON.parse(data);
+        } catch (e) {
+          log.info("Error - Invalid JSON - " + e.message + " " + e.name + ": " + data);
+          obj = {topic: "Error"};
+        }
+
+        if (!obj["topic"] || obj["topic"] == null) {
+          obj["topic"] = "Error";
+          log.info("Error - No topic: " + JSON.stringify(obj));
+        }
         //log.info("object: " + JSON.stringify(obj));
         //log.info("data.topic:" + obj["topic"]);
         //log.info("frequency: " + obj["frequency"]);
         //log.info("values: " + obj["values"]);
         redisClient.publish (obj["topic"], data);
+        // Todo: consider adding all partitionKeys to a redis-set, so they can be fetched by consumers. May be useful is partitionkey equal train-ID, ... other ID of the producder
+        // Todo: consider also to do redisClient.publish(partitionkey, data) so that consumers can subscribe to data from individual producers
         //log.info(util.format('ShardID: %s, Record: %s, SeqenceNumber: %s, PartitionKey:%s', shardId, data, sequenceNumber, partitionKey));
       }
       if (!sequenceNumber) {

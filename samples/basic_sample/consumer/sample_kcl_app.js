@@ -49,7 +49,7 @@ function recordProcessor() {
         redisClient = redis.createClient();
         //log.info ("redis test in producer: " + util.inspect(redisClient));
       } else { // on AWS
-        redisClient = redis.createClient(6379, "web-app-redis.bbfmv1.0001.use1.cache.amazonaws.com");
+        redisClient = redis.createClient(6379, "oslometro-redis-001.ezuesa.0001.euw1.cache.amazonaws.com"); //"web-app-redis.bbfmv1.0001.use1.cache.amazonaws.com");
         //log.info ("redis test in producer: " + util.inspect(redisClient));
       }
 

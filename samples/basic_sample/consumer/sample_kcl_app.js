@@ -26,6 +26,10 @@ var logger = require('../../util/logger');
 // CT own additions
 var redis = require("redis");
 var os = require("os");
+var util = require ("util");
+var process = require("process");
+
+var topic = process.env.topic ? process.env.topic : "test";
 
 /**
  * A simple implementation for the record processor (consumer) that simply writes the data to a log file.
@@ -64,29 +68,13 @@ function recordProcessor() {
       var records = processRecordsInput.records;
       var record, data, sequenceNumber, partitionKey, obj;
       for (var i = 0 ; i < records.length ; ++i) {
+        //log.info("inspect: " + util.inspect(processRecordsInput));
         record = records[i];
         sequenceNumber = record.sequenceNumber;
         partitionKey = record.partitionKey;
         data = new Buffer(record.data, 'base64'); //.toString();
-        //log.info("data: " + data);
-        try {
-          obj = JSON.parse(data);
-        } catch (e) {
-          log.info("Error - Invalid JSON - " + e.message + " " + e.name + ": " + data);
-          obj = {topic: "Error"};
-        }
-
-        if (!obj["topic"] || obj["topic"] == null) {
-          obj["topic"] = "Error";
-          log.info("Error - No topic: " + JSON.stringify(obj));
-        }
-        //log.info("object: " + JSON.stringify(obj));
-        //log.info("data.topic:" + obj["topic"]);
-        //log.info("frequency: " + obj["frequency"]);
-        //log.info("values: " + obj["values"]);
-        redisClient.publish (obj["topic"], data);
-        // Todo: consider adding all partitionKeys to a redis-set, so they can be fetched by consumers. May be useful is partitionkey equal train-ID, ... other ID of the producder
-        // Todo: consider also to do redisClient.publish(partitionkey, data) so that consumers can subscribe to data from individual producers
+        redisClient.publish (topic, data);
+        //log.info("processRecords. data: " + data);
         //log.info(util.format('ShardID: %s, Record: %s, SeqenceNumber: %s, PartitionKey:%s', shardId, data, sequenceNumber, partitionKey));
       }
       if (!sequenceNumber) {

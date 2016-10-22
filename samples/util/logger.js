@@ -21,6 +21,30 @@ function logger() {
   var logDir = process.env.NODE_LOG_DIR !== undefined ? process.env.NODE_LOG_DIR : '.';
 
   var config = {
+    appenders: [
+      {
+        type:       "file",
+        filename:   logDir + "/" + "consumer.log", //logDirSub + "application.log",
+        maxLogSize: 102400,
+        backups:    3,
+        pattern:    "-yyyy-MM-dd",
+        layout:     {
+          type:    "pattern",
+          pattern: "%d (PID: %x{pid}) %p %c - %m",
+          tokens:  {
+            pid: function () {
+              return process.pid;
+            }
+          } // tokens
+        } // layout
+      }, // appender
+      {
+        type: "console"
+      }
+    ]
+  };
+  /*
+  var config = {
     "appenders": [
       {
         "type": "file",
@@ -36,6 +60,7 @@ function logger() {
       }
     ]
   };
+  */
 
   log4js.configure(config, {});
 

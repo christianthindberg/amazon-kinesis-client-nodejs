@@ -22,14 +22,19 @@ var util = require('util');
 var kcl = require('../../..');
 var logger = require('../../util/logger');
 
+const redis = require("redis");
+let KafkaRest = require("kafka-rest");
+let kafka = new KafkaRest({"url": "http://ec2-52-211-70-204.eu-west-1.compute.amazonaws.com:8082"});
 
-// CT own additions
-var redis = require("redis");
-var os = require("os");
-var util = require ("util");
-var process = require("process");
+const os = require("os");
+const process = require("process");
 
-var topic = process.env.topic ? process.env.topic : "test";
+// It is possible to define the topic we use to publish to redis from an environment variable.
+// If environment variable is not defined we use the name of the Kinesis stream defined in sample.properties as the topic
+let redisTopic = null;
+
+// If the environment variable rutertopic is defined we try to send the data also to Ruter Kafka
+let Rutertopic = null;
 
 /**
  * A simple implementation for the record processor (consumer) that simply writes the data to a log file.
@@ -48,12 +53,42 @@ function recordProcessor() {
     initialize: function(initializeInput, completeCallback) {
       shardId = initializeInput.shardId;
 
-      // CT connect to local Redis or AWS Redis
+      redisTopic = process.env.REDIS_TOPIC;
+      Rutertopic = process.env.RUTER_TOPIC;
+
+      log.info("recordProcessor:initialize. Environement variable redisTopic = " + redisTopic);
+      log.info("recordProcessor:initialize. Environement variable rutertopic = " + Rutertopic);
+
+
+      if (!redisTopic) { // Read name of Kinesis stream from sample properties and use this as topic
+        let fileContents = fs.readFileSync(path.join(__dirname, "sample.properties"));
+        let fileLines = fileContents.toString().split('\n');
+
+        //log.debug("fileContents: " + fileContents);
+        log.debug("fileLines.length: " + fileLines.length);
+
+        for (let i=0; i<fileLines.length; i++) {
+          const items = fileLines[i].toString().split(" ");
+          if (items[0].trim().toLowerCase() === "streamname" && items[1].trim().toLowerCase() === "=") {
+            redisTopic = items[2];
+            break;
+          }
+        }
+      }
+
+
+      if (!redisTopic) {
+        log.error("recordProcessor:initialize. redisTopic not found. Missing environment variable and could not read Kinesis streamName from sample.properties");
+        redisTopic = "Error";
+        // todo: find out the proper way to abort the initialization process. Simply returning without calling  completeCallback does not do the trick...
+      }
+
+      // Connect to local Redis or AWS Redis
       if (os.platform() === "darwin") { // running locally on Mac, connect to local Redis
         redisClient = redis.createClient();
         //log.info ("redis test in producer: " + util.inspect(redisClient));
       } else { // on AWS
-        redisClient = redis.createClient(6379, "oslometro-redis-001.ezuesa.0001.euw1.cache.amazonaws.com"); //"web-app-redis.bbfmv1.0001.use1.cache.amazonaws.com");
+        redisClient = redis.createClient(6379, "oslometro-redis-001.ezuesa.0001.euw1.cache.amazonaws.com");
         //log.info ("redis test in producer: " + util.inspect(redisClient));
       }
 
@@ -73,7 +108,15 @@ function recordProcessor() {
         sequenceNumber = record.sequenceNumber;
         partitionKey = record.partitionKey;
         data = new Buffer(record.data, 'base64'); //.toString();
-        redisClient.publish (topic, data);
+        redisClient.publish (redisTopic, data);
+
+        if (Rutertopic) {
+          kafka.topic(Rutertopic).partition(0).produce([data], function (err, response) {
+            if (err) {
+              log.error("processRecords. Writing to Ruter Kafka failed. Environment variable rutertopic: " + Rutertopic + " Error: " + err);
+            }
+          });
+        }
         //log.info("processRecords. data: " + data);
         //log.info(util.format('ShardID: %s, Record: %s, SeqenceNumber: %s, PartitionKey:%s', shardId, data, sequenceNumber, partitionKey));
       }

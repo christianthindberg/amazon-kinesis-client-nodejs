@@ -16,6 +16,7 @@ permissions and limitations under the License.
 'use strict';
 
 var log4js = require('log4js');
+const process = require("process");
 
 function logger() {
   var logDir = process.env.NODE_LOG_DIR !== undefined ? process.env.NODE_LOG_DIR : '.';
@@ -37,13 +38,18 @@ function logger() {
             }
           } // tokens
         } // layout
-      }, // appender
-      {
-        type: "console"
-      }
+      }  //, // appender
+      //{
+      //  type: "console" //-- should not really do this as stdin, stdout, stderr is reservered for multilangdeamon to childprocess communication
+      //}                 // but convenient sometimes for testing locally...
     ]
   };
   /*
+   , // appender
+   {
+   type: "console" -- should not really do this as stdin, stdout, stderr is reservered for multilangdeamon to childprocess communication
+   }
+
   var config = {
     "appenders": [
       {

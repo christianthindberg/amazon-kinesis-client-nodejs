@@ -99,8 +99,8 @@ function recordProcessor() {
         redisClient = redis.createClient();
         //log.info ("redis test in producer: " + util.inspect(redisClient));
       } else { // on AWS
-        redisClient = redis.createClient(6379, "oslometro-redis-001.ezuesa.0001.euw1.cache.amazonaws.com");
-        //log.info ("redis test in producer: " + util.inspect(redisClient));
+        redisClient = redis.createClient(6379, "oslometro-redis.ezuesa.ng.0001.euw1.cache.amazonaws.com");   //"oslometro-redis-001.ezuesa.0001.euw1.cache.amazonaws.com");
+        log.info ("redis test in producer: " + util.inspect(redisClient));
       }
 
       completeCallback();
@@ -121,6 +121,7 @@ function recordProcessor() {
         data = new Buffer(record.data, 'base64'); //.toString();
         redisClient.publish (redisTopic, data);
         log.info("published data to redis: " + redisTopic);
+
         if (Rutertopic) {
           log.info("Rutertopic: " + Rutertopic);
           kafka.topic(Rutertopic).partition(0).produce([data], function (err, response) {

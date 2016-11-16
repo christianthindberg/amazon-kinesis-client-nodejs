@@ -56,9 +56,21 @@ function recordProcessor() {
       redisTopic = process.env.REDIS_TOPIC;
       Rutertopic = process.env.RUTER_TOPIC;
 
-      log.info("recordProcessor:initialize. Environement variable redisTopic = " + redisTopic);
-      log.info("recordProcessor:initialize. Environement variable rutertopic = " + Rutertopic);
+      log.info("recordProcessor:initialize. Environement variable REDIS_TOPIC = " + redisTopic + " space");
+      log.info("recordProcessor:initialize. Environement variable RUTER_TOPIC = " + Rutertopic + " space");
 
+      if (Rutertopic) { // test connection with Ruter Kafka, see if we manage to list topics
+        kafka.topics.list(function (err, topics) {
+          if (err) {
+            log.error ("kafka.topics.list. Unable to list topics: " + err);
+          }
+          else {
+            for (let i=0; i < topics.length; i++) {
+              log.info(topics[i].toString());
+            }
+          }
+        });
+      }
 
       if (!redisTopic) { // Read name of Kinesis stream from sample properties and use this as topic
         let fileContents = fs.readFileSync(path.join(__dirname, "sample.properties"));
@@ -75,7 +87,6 @@ function recordProcessor() {
           }
         }
       }
-
 
       if (!redisTopic) {
         log.error("recordProcessor:initialize. redisTopic not found. Missing environment variable and could not read Kinesis streamName from sample.properties");
@@ -109,11 +120,15 @@ function recordProcessor() {
         partitionKey = record.partitionKey;
         data = new Buffer(record.data, 'base64'); //.toString();
         redisClient.publish (redisTopic, data);
-
+        log.info("published data to redis: " + redisTopic);
         if (Rutertopic) {
+          log.info("Rutertopic: " + Rutertopic);
           kafka.topic(Rutertopic).partition(0).produce([data], function (err, response) {
             if (err) {
-              log.error("processRecords. Writing to Ruter Kafka failed. Environment variable rutertopic: " + Rutertopic + " Error: " + err);
+              log.error("processRecords. Writing to Ruter Kafka failed. Environment variable RUTER_TOPIC: " + Rutertopic + " Error: " + err);
+            }
+            else {
+              log.info("processRecords. Kafka response: " + response);
             }
           });
         }
@@ -133,6 +148,7 @@ function recordProcessor() {
 
     shutdown: function(shutdownInput, completeCallback) {
       redisClient.end();
+      log.info("shutdown: " + shutdownInput.reason);
       // Checkpoint should only be performed when shutdown reason is TERMINATE.
       if (shutdownInput.reason !== 'TERMINATE') {
         completeCallback();

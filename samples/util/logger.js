@@ -42,7 +42,10 @@ function logger() {
       //{
       //  type: "console" //-- should not really do this as stdin, stdout, stderr is reservered for multilangdeamon to childprocess communication
       //}                 // but convenient sometimes for testing locally...
-    ]
+    ],
+    "levels": {
+      "[all]": "INFO" // ALL, TRACE, DEBUG, INFO, WARN, ERROR, FATAL, OFF
+    }
   };
   /*
    , // appender

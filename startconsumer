@@ -1,0 +1,5 @@
+#!/bin/bash
+# remember to do chmod 755 my_script to make executable
+
+cd /var/app/current/samples/basic_sample/consumer
+../../../bin/kcl-bootstrap --java /usr/bin/java -e -p ./sample.properties

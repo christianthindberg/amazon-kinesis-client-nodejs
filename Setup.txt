@@ -1,0 +1,35 @@
+0. Prerequisites: AWS keys with Kinesis righs in .aws-file, github account,local git, nodejs, npm ...
+1. via web, go to Github. Search for AWS kinesis nodejs and fork the repo
+2. open terminal on local computer and do clone <path to git>
+3. in terminal go to root directory and do npm install
+4. Configure the producer: edit samples/basic_sample/producer/config.js, set region, streamname etc
+4. Test run the producer:
+    cd samples/basic_sample/producer
+    node sample_kinesis_producer_app.js
+	web to AWS/Kinesis console in selected region and check that the Kinesis stream is created
+	check local file application.log and ensure 10 messages are published to kinesis
+	
+5. Test run the consumer
+	ensure you have JAVA SDK installed and proper environment variables JAVA_PATH etc
+	cd samples/basic_sample/producer
+	edit the file sample.properties. Set region etc set name of stream, nb: case sensitive
+	../../../bin/kcl-bootstrap --java /usr/bin/java -e -p ./sample.properties
+	check local application.log and ensure 10 messages are read
+	
+6. Ensure you have redis running on local computer
+7. Install nodejs client library to appllication. From application dir do
+	npm install redis --save
+
+cd into application directory and do zip. Upload to Elastic Beanstalk as nodejs web server.
+After uploading to ElasticBeanstalk, open terminal and do ssh:
+ssh -i /Users/christianthindberg/Credentials/ct_test_keys.pem ec2-user@ec2-52-91-166-21.compute-1.amazonaws.com
+
+change directory to the application: 
+/var/app/current/samples/basic_sample/consumer
+
+
+do: 	../../../bin/kcl-bootstrap --java /usr/bin/java -e -p ./sample.properties
+
+
+NODE not installed? Tip:
+sudo yum install nodejs npm --enablerepo=epel
